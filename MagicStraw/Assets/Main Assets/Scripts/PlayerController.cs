@@ -5,13 +5,17 @@ using UnityEngine;
 public class PlayerController : MonoBehaviour
 {
     private float movementInputDirection;
+    private float jumpTimer;
 
     private int amountOfJumpsLeft;
 
     private bool isFacingRight = true;
     private bool isWalking;
     private bool isGrounded;
-    private bool canJump;
+    private bool isTouchingWall;
+    private bool canNormalJump;
+    private bool isAttemptingToJump;
+    private bool checkJumpMultiplier;
 
     private Rigidbody2D rb;
     private Animator anim;
@@ -21,8 +25,12 @@ public class PlayerController : MonoBehaviour
     public float movementSpeed;
     public float jumpForce = 16.0f;
     public float groundCheckRadius;
+    public float wallCheckDistance;
+    public float variableJumpHeightMultiplier = 0.5f;
+    public float jumpTimerSet = 0.15f;
 
     public Transform groundCheck;
+    public Transform wallCheck;
 
     public LayerMask whatIsGround;
 
@@ -41,6 +49,7 @@ public class PlayerController : MonoBehaviour
         CheckMovementDirection();
         UpdateAnimations();
         CheckIfCanJump();
+        CheckJump();
     }
 
     private void FixedUpdate()
@@ -52,22 +61,24 @@ public class PlayerController : MonoBehaviour
     private void CheckSurroundings()
     {
         isGrounded = Physics2D.OverlapCircle(groundCheck.position, groundCheckRadius, whatIsGround);
+
+        isTouchingWall = Physics2D.Raycast(wallCheck.position, transform.right, wallCheckDistance, whatIsGround);
     }
 
     private void CheckIfCanJump()
     {
-        if(isGrounded && rb.velocity.y <= 0)
+        if(isGrounded && rb.velocity.y <= 0.01f)
         {
             amountOfJumpsLeft = amountOfJumps;
         }
         
         if(amountOfJumpsLeft <= 0)
         {
-            canJump = false;
+            canNormalJump = false;
         }
         else
         {
-            canJump = true;
+            canNormalJump = true;
         }
     }
 
@@ -105,7 +116,21 @@ public class PlayerController : MonoBehaviour
 
         if (Input.GetButtonDown("Jump"))
         {
-            Jump();
+            if(isGrounded || amountOfJumps > 0)
+            {
+                NormalJump();
+            }
+            else
+            {
+                jumpTimer = jumpTimerSet;
+                isAttemptingToJump = true;
+            }
+        }
+
+        if (checkJumpMultiplier && !Input.GetButton("Jump"))
+        {
+            checkJumpMultiplier = false;
+            rb.velocity = new Vector2(rb.velocity.x, rb.velocity.y * variableJumpHeightMultiplier);
         }
 
     }
@@ -121,18 +146,39 @@ public class PlayerController : MonoBehaviour
         transform.Rotate(0.0f, 180.0f, 0.0f);
     }
 
-    private void Jump()
+    private void CheckJump()
     {
-        if (canJump)
+        if(jumpTimer > 0)
+        {
+            if (isGrounded)
+            {
+                NormalJump();
+            }
+        }
+
+        if (isAttemptingToJump)
+        {
+            jumpTimer -= Time.deltaTime;
+        }
+    }
+
+    private void NormalJump()
+    {
+        if (canNormalJump)
         {
             rb.velocity = new Vector2(rb.velocity.x, jumpForce);
             amountOfJumpsLeft--;
+            jumpTimer = 0;
+            isAttemptingToJump = false;
+            checkJumpMultiplier = true;
         }
+
     }
 
     private void OnDrawGizmos()
     {
         Gizmos.DrawWireSphere(groundCheck.position, groundCheckRadius);
+        Gizmos.DrawLine(wallCheck.position, new Vector3(wallCheck.position.x + wallCheckDistance, wallCheck.position.y, wallCheck.position.z));
     }
     
 }
