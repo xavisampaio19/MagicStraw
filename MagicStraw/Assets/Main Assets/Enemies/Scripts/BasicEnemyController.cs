@@ -53,7 +53,7 @@ public class BasicEnemyController : MonoBehaviour
         aliveRb = alive.GetComponent<Rigidbody2D>();
         aliveAnim = alive.GetComponent<Animator>();
 
-        facingDirection = -1;
+        facingDirection = 1;
     }
 
     private void Update()
@@ -136,7 +136,7 @@ public class BasicEnemyController : MonoBehaviour
 
     }
 
-    //--OTHER FUNCTION----------------
+    //--OTHER FUNCTIONS----------------
 
     private void Damage(float[] attackDetails)
     {
